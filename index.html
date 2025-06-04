@@ -15,75 +15,73 @@
   <p id="status" style="margin-top: 30px; font-size: 18px;"></p>
 
   <script>
-    const LIFF_ID = "2007506939-vyL2BwJw"; // ← 把這裡替換成你自己的 LIFF ID
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwhm2LwwnNbAZpyB5WwLF25Z842bDNI7E0ABaU_lv0j_SzefJei55OqzINAVRLeCcd-/exec"; // ← 替換成你的 Web App URL
+    const LIFF_ID = "2007506939-vyL2BwJw"; // 你的 LIFF ID
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwhm2LwwnNbAZpyB5WwLF25Z842bDNI7E0ABaU_lv0j_SzefJei55OqzINAVRLeCcd-/exec"; // 你的 GAS Web App URL
 
-    // 初始化 LIFF
-liff.init({ liffId: LIFF_ID })
-  .then(() => {
-    if (!liff.isLoggedIn()) {
-      liff.login();
-    }
-  })
-      .catch((err) => {
+    async function initLIFF() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return; // login 後會自動重新整理，所以後面不執行
+        }
+
+        const accessToken = liff.getAccessToken();
+        if (!accessToken) {
+          document.getElementById("status").innerText = "尚未登入 LINE 帳號，請重新整理";
+        }
+      } catch (err) {
         document.getElementById("status").innerText = "LIFF 初始化失敗：" + err;
-      });
+      }
+    }
+
+    initLIFF(); // ← 主動執行初始化
 
     async function checkIn() {
-      try {
-        const profile = await liff.getProfile();
-        const uid = profile.userId;
-        sendToSheet("上班", uid);
-      } catch (error) {
-        document.getElementById("status").innerText = "打卡失敗：" + error;
-      }
+      await handleAction("上班");
     }
 
     async function checkOut() {
-      try {
-        const profile = await liff.getProfile();
-        const uid = profile.userId;
-        sendToSheet("下班", uid);
-      } catch (error) {
-        document.getElementById("status").innerText = "打卡失敗：" + error;
-      }
+      await handleAction("下班");
     }
 
     async function askLeave() {
-      try {
-        const profile = await liff.getProfile();
-        const uid = profile.userId;
-        sendToSheet("請假", uid);
-      } catch (error) {
-        document.getElementById("status").innerText = "申請失敗：" + error;
-      }
+      await handleAction("請假");
     }
 
     async function query() {
+      await handleAction("查詢");
+    }
+
+    async function handleAction(action) {
       try {
+        if (!liff.isLoggedIn()) {
+          document.getElementById("status").innerText = "⚠️ 尚未登入，請重新整理";
+          return;
+        }
+
         const profile = await liff.getProfile();
         const uid = profile.userId;
-        sendToSheet("查詢", uid);
+
+        await sendToSheet(action, uid);
       } catch (error) {
-        document.getElementById("status").innerText = "查詢失敗：" + error;
+        document.getElementById("status").innerText = `打卡失敗：${error}`;
       }
     }
 
-    function sendToSheet(action, uid) {
-      fetch(SHEET_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: action, userId: uid }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-        .then((res) => res.text())
-        .then((data) => {
-          document.getElementById("status").innerText = "✅ " + data;
-        })
-        .catch((err) => {
-          document.getElementById("status").innerText = "❌ 發送失敗：" + err;
+    async function sendToSheet(action, uid) {
+      try {
+        const res = await fetch(SHEET_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: action, userId: uid })
         });
+        const data = await res.text();
+        document.getElementById("status").innerText = "✅ " + data;
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ 發送失敗：" + err;
+      }
     }
   </script>
 </body>
