@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>LINE 打卡系統</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      background: #06c755;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      margin: 10px 0;
+      width: 80%;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h2>打卡系統</h2>
+  <button onclick="checkIn('上班')">上班</button>
+  <button onclick="checkIn('下班')">下班</button>
+  <button onclick="checkIn('請假')">請假</button>
+  <button onclick="checkIn('查詢')">查詢</button>
+  <p id="status">📌 準備就緒</p>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycby5MSPjS0LmsiugKeNls8PWOUYhRw8f1e4T7Kv-NfXcF_TKoEF6VsOXVIrldwzSEn6jeA/exec";
+    const LIFF_ID = "2007506939-vqz6BwVw";
+
+    async function checkIn(action) {
+      const statusEl = document.getElementById("status");
+      statusEl.textContent = "提交中...";
+
+      try {
+        if (!liff.isInitialized()) {
+          await liff.init({ liffId: LIFF_ID });
+        }
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+
+        const response = await fetch(GAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: profile.userId,
+            name: profile.displayName,
+            action: action
+          })
+        });
+
+        if (!response.ok) throw new Error("HTTP 錯誤: " + response.status);
+        const result = await response.text();
+        statusEl.textContent = result;
+      } catch (err) {
+        console.error("打卡失敗:", err);
+        statusEl.textContent = `錯誤：${err.message}`;
+      }
+    }
+
+    liff.init({ liffId: LIFF_ID })
+      .then(() => {
+        if (!liff.isLoggedIn()) liff.login();
+      })
+      .catch(err => {
+        console.error("LIFF 初始化失敗:", err);
+        document.getElementById("status").textContent = "LIFF 初始化失敗";
+      });
+  </script>
+</body>
+</html>
