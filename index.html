@@ -19,10 +19,12 @@
     const SHEET_URL = "https://script.google.com/macros/s/AKfycbwhm2LwwnNbAZpyB5WwLF25Z842bDNI7E0ABaU_lv0j_SzefJei55OqzINAVRLeCcd-/exec"; // ← 替換成你的 Web App URL
 
     // 初始化 LIFF
-    liff.init({ liffId: LIFF_ID })
-      .then(() => {
-        console.log("LIFF 初始化成功");
-      })
+liff.init({ liffId: LIFF_ID })
+  .then(() => {
+    if (!liff.isLoggedIn()) {
+      liff.login();
+    }
+  })
       .catch((err) => {
         document.getElementById("status").innerText = "LIFF 初始化失敗：" + err;
       });
