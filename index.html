@@ -2,87 +2,58 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>LINE 打卡系統</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <title>LINE 打卡系統（純網頁版）</title>
+  <style>
+    body { text-align: center; padding: 50px; font-family: sans-serif; }
+    h1 { font-size: 24px; }
+    button { margin: 10px; padding: 10px 20px; font-size: 16px; }
+    #status { margin-top: 30px; font-size: 18px; }
+  </style>
 </head>
-<body style="text-align: center; padding: 50px; font-family: sans-serif;">
-  <h1>LINE 打卡系統</h1>
+<body>
+  <h1>LINE 打卡系統（純網頁版）</h1>
+  <input type="text" id="uid" placeholder="請輸入你的 LINE userId" style="width: 250px; padding: 8px;" /><br />
   <button onclick="checkIn()">上班</button>
   <button onclick="checkOut()">下班</button>
   <button onclick="askLeave()">請假</button>
   <button onclick="query()">查詢</button>
 
-  <p id="status" style="margin-top: 30px; font-size: 18px;"></p>
+  <p id="status"></p>
 
   <script>
-    const LIFF_ID = "2007506939-vyL2BwJw"; // 你的 LIFF ID
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbyR3FzdAm3rrPgdksqq0SvNR_jdOYc2ChhYLPfGIyaAibhq35BF6Ktdu_f9z7UVsxJy/exec"; // 你的 GAS Web App URL
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwDUTIPEqgPBgthRsBX7DsKZLZaMU8kwEkMKxCQsosxS2vWkFcTsB-Cop8z1h8__sZT/exec";
 
-    async function initLIFF() {
-      try {
-        await liff.init({ liffId: LIFF_ID });
+    function getUid() {
+      return document.getElementById("uid").value.trim();
+    }
 
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return; // login 後會自動重新整理，所以後面不執行
-        }
-
-        const accessToken = liff.getAccessToken();
-        if (!accessToken) {
-          document.getElementById("status").innerText = "尚未登入 LINE 帳號，請重新整理";
-        }
-      } catch (err) {
-        document.getElementById("status").innerText = "LIFF 初始化失敗：" + err;
+    function sendToSheet(action) {
+      const uid = getUid();
+      if (!uid) {
+        document.getElementById("status").innerText = "請輸入 userId";
+        return;
       }
-    }
 
-    initLIFF(); // ← 主動執行初始化
-
-    async function checkIn() {
-      await handleAction("上班");
-    }
-
-    async function checkOut() {
-      await handleAction("下班");
-    }
-
-    async function askLeave() {
-      await handleAction("請假");
-    }
-
-    async function query() {
-      await handleAction("查詢");
-    }
-
-    async function handleAction(action) {
-      try {
-        if (!liff.isLoggedIn()) {
-          document.getElementById("status").innerText = "⚠️ 尚未登入，請重新整理";
-          return;
-        }
-
-        const profile = await liff.getProfile();
-        const uid = profile.userId;
-
-        await sendToSheet(action, uid);
-      } catch (error) {
-        document.getElementById("status").innerText = `打卡失敗：${error}`;
-      }
-    }
-
-    async function sendToSheet(action, uid) {
-      try {
-        const res = await fetch(SHEET_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: action, userId: uid })
-        });
-        const data = await res.text();
+      fetch(SHEET_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: action, userId: uid }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      .then((res) => res.text())
+      .then((data) => {
         document.getElementById("status").innerText = "✅ " + data;
-      } catch (err) {
+      })
+      .catch((err) => {
         document.getElementById("status").innerText = "❌ 發送失敗：" + err;
-      }
+      });
     }
+
+    function checkIn() { sendToSheet("上班"); }
+    function checkOut() { sendToSheet("下班"); }
+    function askLeave() { sendToSheet("請假"); }
+    function query() { sendToSheet("查詢"); }
   </script>
 </body>
 </html>
