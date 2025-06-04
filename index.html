@@ -1,82 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
   <title>LINE 打卡系統</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    button {
-      background: #06c755;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      margin: 10px 0;
-      width: 80%;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-  </style>
-</head>
-<body>
-  <h2>打卡系統</h2>
-  <button onclick="checkIn('上班')">上班</button>
-  <button onclick="checkIn('下班')">下班</button>
-  <button onclick="checkIn('請假')">請假</button>
-  <button onclick="checkIn('查詢')">查詢</button>
-  <p id="status">📌 準備就緒</p>
-
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body style="text-align: center; padding: 50px; font-family: sans-serif;">
+  <h1>LINE 打卡系統</h1>
+  <button onclick="checkIn()">上班</button>
+  <button onclick="checkOut()">下班</button>
+  <button onclick="askLeave()">請假</button>
+  <button onclick="query()">查詢</button>
+
+  <p id="status" style="margin-top: 30px; font-size: 18px;"></p>
+
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycby5MSPjS0LmsiugKeNls8PWOUYhRw8f1e4T7Kv-NfXcF_TKoEF6VsOXVIrldwzSEn6jeA/exec";
-    const LIFF_ID = "2007506939-vyL2BwJw";
+    const LIFF_ID = "2007506939-vyL2BwJw"; // ← 把這裡替換成你自己的 LIFF ID
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwhm2LwwnNbAZpyB5WwLF25Z842bDNI7E0ABaU_lv0j_SzefJei55OqzINAVRLeCcd-/exec"; // ← 替換成你的 Web App URL
 
-    async function checkIn(action) {
-      const statusEl = document.getElementById("status");
-      statusEl.textContent = "提交中...";
+    // 初始化 LIFF
+    liff.init({ liffId: LIFF_ID })
+      .then(() => {
+        console.log("LIFF 初始化成功");
+      })
+      .catch((err) => {
+        document.getElementById("status").innerText = "LIFF 初始化失敗：" + err;
+      });
 
+    async function checkIn() {
       try {
-        if (!liff.isInitialized()) {
-          await liff.init({ liffId: LIFF_ID });
-        }
-
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
         const profile = await liff.getProfile();
-
-        const response = await fetch(GAS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: profile.userId,
-            name: profile.displayName,
-            action: action
-          })
-        });
-
-        if (!response.ok) throw new Error("HTTP 錯誤: " + response.status);
-        const result = await response.text();
-        statusEl.textContent = result;
-      } catch (err) {
-        console.error("打卡失敗:", err);
-        statusEl.textContent = `錯誤：${err.message}`;
+        const uid = profile.userId;
+        sendToSheet("上班", uid);
+      } catch (error) {
+        document.getElementById("status").innerText = "打卡失敗：" + error;
       }
     }
 
-    liff.init({ liffId: LIFF_ID })
-      .then(() => {
-        if (!liff.isLoggedIn()) liff.login();
+    async function checkOut() {
+      try {
+        const profile = await liff.getProfile();
+        const uid = profile.userId;
+        sendToSheet("下班", uid);
+      } catch (error) {
+        document.getElementById("status").innerText = "打卡失敗：" + error;
+      }
+    }
+
+    async function askLeave() {
+      try {
+        const profile = await liff.getProfile();
+        const uid = profile.userId;
+        sendToSheet("請假", uid);
+      } catch (error) {
+        document.getElementById("status").innerText = "申請失敗：" + error;
+      }
+    }
+
+    async function query() {
+      try {
+        const profile = await liff.getProfile();
+        const uid = profile.userId;
+        sendToSheet("查詢", uid);
+      } catch (error) {
+        document.getElementById("status").innerText = "查詢失敗：" + error;
+      }
+    }
+
+    function sendToSheet(action, uid) {
+      fetch(SHEET_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: action, userId: uid }),
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
-      .catch(err => {
-        console.error("LIFF 初始化失敗:", err);
-        document.getElementById("status").textContent = "LIFF 初始化失敗";
-      });
+        .then((res) => res.text())
+        .then((data) => {
+          document.getElementById("status").innerText = "✅ " + data;
+        })
+        .catch((err) => {
+          document.getElementById("status").innerText = "❌ 發送失敗：" + err;
+        });
+    }
   </script>
 </body>
 </html>
