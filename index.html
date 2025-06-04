@@ -4,15 +4,36 @@
   <meta charset="utf-8" />
   <title>LINE 打卡系統（純網頁版）</title>
   <style>
-    body { text-align: center; padding: 50px; font-family: sans-serif; }
-    h1 { font-size: 24px; }
-    button { margin: 10px; padding: 10px 20px; font-size: 16px; }
-    #status { margin-top: 30px; font-size: 18px; }
+    body {
+      text-align: center;
+      padding: 50px;
+      font-family: sans-serif;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      width: 80%;
+      max-width: 300px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 5px;
+      border-radius: 10px;
+      border: none;
+      background-color: #e0e0ff;
+    }
+    p {
+      margin-top: 30px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
-  <h1>LINE 打卡系統（純網頁版）</h1>
-  <input type="text" id="uid" placeholder="請輸入你的 LINE userId" style="width: 250px; padding: 8px;" /><br />
+  <h2>LINE 打卡系統（純網頁版）</h2>
+  <input id="userIdInput" placeholder="casey" />
+  <br />
   <button onclick="checkIn()">上班</button>
   <button onclick="checkOut()">下班</button>
   <button onclick="askLeave()">請假</button>
@@ -21,14 +42,14 @@
   <p id="status"></p>
 
   <script>
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbws9Zn3fR6kNwKhVDVwGY8BloYxxbUkyDtuVVca22lDhBRQSaNoI8RijxUODnttqzOa/exec";
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbyRYdoZi8eCZwltvM2-whR8GUQOPuV-_AMykwSx7eNwQ2AwRRHmdgCJlg-w0UBUXgUH/exec";
 
-    function getUid() {
-      return document.getElementById("uid").value.trim();
+    function getUserId() {
+      return document.getElementById("userIdInput").value.trim();
     }
 
     function sendToSheet(action) {
-      const uid = getUid();
+      const uid = getUserId();
       if (!uid) {
         document.getElementById("status").innerText = "請輸入 userId";
         return;
@@ -41,19 +62,19 @@
           "Content-Type": "application/json",
         },
       })
-      .then((res) => res.text())
-      .then((data) => {
-        document.getElementById("status").innerText = "✅ " + data;
-      })
-      .catch((err) => {
-        document.getElementById("status").innerText = "❌ 發送失敗：" + err;
-      });
+        .then((res) => res.text())
+        .then((data) => {
+          document.getElementById("status").innerHTML = `✅ ${data}`;
+        })
+        .catch((err) => {
+          document.getElementById("status").innerHTML = `❌ 發送失敗：${err}`;
+        });
     }
 
-    function checkIn() { sendToSheet("上班"); }
-    function checkOut() { sendToSheet("下班"); }
-    function askLeave() { sendToSheet("請假"); }
-    function query() { sendToSheet("查詢"); }
-  </script>
-</body>
-</html>
+    function checkIn() {
+      sendToSheet("上班");
+    }
+
+    function checkOut() {
+      sendToSheet("下班");
+    }
